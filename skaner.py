@@ -8,6 +8,7 @@ Jesli w danym miesiacu nie przejdzie zadna — wynikiem jest pusta tabela.
 To jest poprawny wynik, nie blad.
 """
 
+import html
 import io
 import os
 import sys
@@ -147,6 +148,7 @@ def analizuj(tk):
     return {
         "ticker": tk,
         "nazwa": (info.get("shortName") or tk)[:28],
+        "branza": info.get("industry") or info.get("sector") or "",
         "mcap": mcap,
         "waluta": info.get("currency", "?"),
         "f_score": fs,
@@ -201,7 +203,10 @@ def tabela(wyniki, tylko_przechodzace):
         return "<p class='pusto'>Żadna spółka nie przeszła filtra w tym miesiącu.</p>"
     rows = ""
     for r in dane[:40]:
-        rows += (f"<tr><th>{r['ticker']}<br><span class='maly'>{r['nazwa']}</span></th>"
+        nazwa = html.escape(r["nazwa"])
+        branza = html.escape(r.get("branza") or "")
+        opis = f"<br><span class='branza'>{branza}</span>" if branza else ""
+        rows += (f"<tr><th>{html.escape(r['ticker'])}<br><span class='maly'>{nazwa}</span>{opis}</th>"
                  f"<td>{fmt(r['f_score'],'/9',0)}</td><td>{fmt(r['fcf_yield'],'%')}</td>"
                  f"<td>{fmt(r['nd_ebitda'],'×')}</td><td>{fmt(r['pe'])}</td>"
                  f"<td>{fmt(r['pb'])}</td><td>{fmt(r['roe'],'%')}</td>"
@@ -228,6 +233,7 @@ font-weight:400;font-variant-numeric:tabular-nums}
 td{font-variant-numeric:tabular-nums}
 tr:last-child th,tr:last-child td{border-bottom:none}
 .maly{color:var(--cichy);font-size:11px}
+.branza{color:var(--cichy);font-size:11px;font-style:italic}
 .pusto{background:var(--karta);border:1px solid var(--linia);border-radius:3px;
 padding:22px;margin:0;color:var(--cichy);font-size:14px}
 .uwagi{margin-top:32px;font-size:13px;line-height:1.65;color:var(--cichy)}
@@ -261,6 +267,16 @@ Sortowanie po FCF yield. Kryteria ustalone z góry i niezmieniane po zobaczeniu 
 <p class="wstep">Bez filtra, poglądowo. Pokrycie danych fundamentalnych dla GPW
 w yfinance jest niepełne — puste pola oznaczają brak danych, nie zero.</p>
 {tabela(w_pl, False)}
+<h2>Co oznaczają kolumny</h2>
+<ul class="uwagi">
+<li><b>F-Score</b> — 9-punktowy test Piotroskiego: bilans, rentowność, trend rok do roku. Skala 0–9. Filtr wymaga ≥{MIN_F_SCORE}. Wysoki nie znaczy „tanio", tylko „solidne liczby".</li>
+<li><b>FCF yield</b> — gotówka operacyjna minus capex, podzielona przez kapitalizację. Im wyżej, tym więcej gotówki firma generuje względem swojej wyceny. Filtr wymaga ≥{MIN_FCF_YIELD:.0f}%.</li>
+<li><b>Dług/EBITDA</b> — dług netto do zysku operacyjnego przed amortyzacją. Im niżej, tym mniej zadłużona firma, tym większa szansa, że przetrwa gorszy rok. Filtr wymaga ≤{MAX_NET_DEBT_EBITDA:.0f}×.</li>
+<li><b>P/E</b> — cena do zysku. Kontekst, nie kryterium filtra. Wysoki bywa „drogo" albo „rynek oczekuje wzrostu"; niski bywa „tanio" albo „coś jest nie tak" — liczba sama tego nie mówi.</li>
+<li><b>P/B</b> — cena do wartości księgowej. Kontekst. Poniżej 1 czasem okazja, czasem spółka w kłopotach — trzeba sprawdzić dlaczego.</li>
+<li><b>ROE</b> — zysk netto do kapitału własnego. Kontekst. Wysoki bywa dobry, bywa też efektem dużego zadłużenia — sprawdź Dług/EBITDA obok.</li>
+<li><b>Od szczytu 3l</b> — ile % poniżej 3-letniego szczytu jest dziś kurs. Kontekst, nie kryterium — spółka może przejść filtr przy szczycie wszech czasów.</li>
+</ul>
 <ul class="uwagi">
 <li>To nie jest rekomendacja. Filtr mówi tylko, że spółka spełniła kryteria liczbowe.</li>
 <li>F-Score bada bilans i rentowność, nie wycenę. Wysoki F-Score nie znaczy „tanio".</li>
