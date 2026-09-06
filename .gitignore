@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+diag.py
+diag_wyniki.json
+diag_sp500.json
+etykiety.json
+test_skanuj.json
